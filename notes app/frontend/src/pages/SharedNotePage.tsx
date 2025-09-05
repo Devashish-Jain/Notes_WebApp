@@ -105,7 +105,7 @@ const SharedNotePage: React.FC = () => {
             setIsSaving(true);
             setError(null);
 
-            const response = await axios.put(
+            await axios.put(
                 `${import.meta.env.VITE_API_BASE_URL}/api/public/notes/${shareId}`,
                 {
                     title: editTitle,
@@ -171,7 +171,7 @@ const SharedNotePage: React.FC = () => {
                 }
             });
             
-            const response = await axios.post(
+            await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/public/notes/${shareId}/images`,
                 formData,
                 {
@@ -193,7 +193,7 @@ const SharedNotePage: React.FC = () => {
         }
     };
     
-    const handleDeleteImage = async (imageUrl: string, imageIndex: number) => {
+    const handleDeleteImage = async (imageUrl: string) => {
         if (!note) return;
         
         try {
@@ -574,7 +574,7 @@ const SharedNotePage: React.FC = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDeleteImage(imageUrl, index);
+                                                            handleDeleteImage(imageUrl);
                                                         }}
                                                         className="image-delete-btn"
                                                         style={{

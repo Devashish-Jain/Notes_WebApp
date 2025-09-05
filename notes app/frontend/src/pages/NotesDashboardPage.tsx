@@ -106,11 +106,11 @@ const NotesDashboardPage: React.FC = () => {
             formData.append('content', newNote.content);
             
             // Add selected files
-            selectedFiles.forEach((file, index) => {
+            selectedFiles.forEach((file) => {
                 formData.append('images', file);
             });
 
-            const response = await axios.post(
+            await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/notes`,
                 formData,
                 {
@@ -257,7 +257,7 @@ const NotesDashboardPage: React.FC = () => {
             setIsCreatingShare(true);
             setError(null);
             
-            const response = await axios.post(
+            await axios.post(
                 `${import.meta.env.VITE_API_BASE_URL}/api/notes/${sharingNote.id}/share`,
                 {
                     accessLevel: selectedAccessLevel
@@ -428,8 +428,8 @@ const NotesDashboardPage: React.FC = () => {
         }
     };
     
-    const handleDeleteImage = async (imageUrl: string, imageIndex: number) => {
-        console.log('[Dashboard] Deleting image:', { imageUrl: imageUrl.substring(0, 50) + '...', imageIndex });
+    const handleDeleteImage = async (imageUrl: string) => {
+        console.log('[Dashboard] Deleting image:', { imageUrl: imageUrl.substring(0, 50) + '...' });
         
         // Find which note this image belongs to
         const noteWithImage = notes.find(note => 
@@ -805,7 +805,7 @@ const NotesDashboardPage: React.FC = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleDeleteImage(imageUrl, index);
+                                                            handleDeleteImage(imageUrl);
                                                         }}
                                                         className="image-delete-btn"
                                                         style={{

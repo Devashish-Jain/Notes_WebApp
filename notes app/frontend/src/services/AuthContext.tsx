@@ -1,15 +1,15 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
 
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const authAPI = {
-    login: async (credentials: any) => {
+    login: async (credentials: LoginCredentials) => {
         const response = await axios.post(`${API_BASE_URL}/api/auth/login`, credentials);
         return response;
     },
-    register: async (userData: any) => {
+    register: async (userData: RegisterData) => {
         const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
         return response;
     }
@@ -20,10 +20,21 @@ interface User {
     email: string;
 }
 
+interface LoginCredentials {
+    email: string;
+    password: string;
+}
+
+interface RegisterData {
+    username: string;
+    email: string;
+    password: string;
+}
+
 interface AuthContextType {
     user: User | null;
-    login: (credentials: any) => Promise<{ success: boolean; error?: string }>;
-    register: (userData: any) => Promise<{ success: boolean; error?: string }>;
+    login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
+    register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
     logout: () => void;
     loading: boolean;
     isAuthenticated: boolean;
@@ -61,7 +72,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = async (credentials) => {
+    const login = async (credentials: LoginCredentials) => {
         try {
             const response = await authAPI.login(credentials);
             const { token, username, email } = response.data;
@@ -72,7 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(userData);
             
             return { success: true };
-        } catch (error) {
+        } catch (error: any) {
             return { 
                 success: false, 
                 error: error.response?.data?.error || 'Login failed' 
@@ -80,11 +91,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const register = async (userData) => {
+    const register = async (userData: RegisterData) => {
         try {
             await authAPI.register(userData);
             return { success: true };
-        } catch (error) {
+        } catch (error: any) {
             return { 
                 success: false, 
                 error: error.response?.data?.error || 'Registration failed' 

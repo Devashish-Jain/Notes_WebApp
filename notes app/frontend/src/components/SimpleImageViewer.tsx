@@ -5,7 +5,7 @@ interface SimpleImageViewerProps {
     isOpen: boolean;
     onClose: () => void;
     initialIndex?: number;
-    onDeleteImage?: (imageUrl: string, index: number) => void;
+    onDeleteImage?: (imageUrl: string) => void;
     canDelete?: boolean;
 }
 
@@ -68,7 +68,7 @@ const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
 
     const handleDeleteImage = () => {
         if (onDeleteImage && canDelete) {
-            onDeleteImage(images[currentIndex], currentIndex);
+            onDeleteImage(images[currentIndex]);
             // Navigate to previous image or close if this was the last image
             if (images.length === 1) {
                 onClose();
@@ -204,7 +204,7 @@ const SimpleImageViewer: React.FC<SimpleImageViewerProps> = ({
                         borderRadius: '8px',
                         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)'
                     }}
-                    onError={(e) => {
+                    onError={() => {
                         console.error('Failed to load image:', images[currentIndex]);
                     }}
                 />
