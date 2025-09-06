@@ -150,8 +150,9 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
                     margin-right: 12px;
                     width: 18px;
                     height: 18px;
-                    cursor: ${(editable && onContentChange) || onTaskToggle ? 'pointer' : 'default'};
+                    cursor: ${(editable && onContentChange) || onTaskToggle ? 'pointer' : 'not-allowed'};
                     accent-color: #28a745;
+                    opacity: ${(editable && onContentChange) || onTaskToggle ? '1' : '0.6'};
                 }
 
                 .note-content-renderer .task-text {
@@ -232,6 +233,19 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>
                                 📋 {tasks.filter(t => !t.completed).length} pending, {tasks.filter(t => t.completed).length} completed
+                                {!editable && !onTaskToggle && (
+                                    <span style={{ 
+                                        marginLeft: '8px',
+                                        fontSize: '11px', 
+                                        color: '#888', 
+                                        fontStyle: 'italic',
+                                        background: '#f0f0f0',
+                                        padding: '2px 6px',
+                                        borderRadius: '10px'
+                                    }}>
+                                        👁️ View Only
+                                    </span>
+                                )}
                             </span>
                             <span style={{ fontSize: '12px', color: '#777' }}>
                                 {tasks.length > 0 && `${Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100)}% complete`}

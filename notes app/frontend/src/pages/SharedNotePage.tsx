@@ -459,7 +459,7 @@ const SharedNotePage: React.FC = () => {
                                             handleSaveContent(newContent);
                                         }
                                     }}
-                                    onTaskToggle={handleSaveContent}
+                                    onTaskToggle={note.accessLevel === 'EDITOR' ? handleSaveContent : undefined}
                                 />
                             </div>
 
