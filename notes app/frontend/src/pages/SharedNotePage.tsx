@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import SimpleImageViewer from '../components/SimpleImageViewer';
+import RichTextEditor from '../components/RichTextEditor';
+import NoteContentRenderer from '../components/NoteContentRenderer';
 
 interface SharedNote {
     id: number;
@@ -193,6 +195,35 @@ const SharedNotePage: React.FC = () => {
         }
     };
     
+    // Handle real-time content updates (for task completion)
+    const handleSaveContent = async (newContent: string) => {
+        if (!note) return;
+        
+        try {
+            await axios.put(
+                `${import.meta.env.VITE_API_BASE_URL}/api/public/notes/${shareId}`,
+                {
+                    title: note.title,
+                    content: newContent
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            // Update local state
+            setNote({
+                ...note,
+                content: newContent
+            });
+            
+        } catch (error: any) {
+            console.error('Failed to update note content:', error);
+        }
+    };
+    
     const handleDeleteImage = async (imageUrl: string) => {
         if (!note) return;
         
@@ -373,22 +404,11 @@ const SharedNotePage: React.FC = () => {
                                 }}>
                                     Content
                                 </label>
-                                <textarea
+                                <RichTextEditor
                                     value={editContent}
-                                    onChange={(e) => setEditContent(e.target.value)}
-                                    placeholder="Write your note content..."
-                                    rows={12}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid var(--border-color)',
-                                        borderRadius: '8px',
-                                        fontSize: '16px',
-                                        outline: 'none',
-                                        resize: 'vertical',
-                                        fontFamily: 'inherit',
-                                        lineHeight: '1.6'
-                                    }}
+                                    onChange={setEditContent}
+                                    placeholder="Edit the shared note content... Use the toolbar for formatting and tasks."
+                                    height="300px"
                                 />
                             </div>
 
@@ -428,13 +448,18 @@ const SharedNotePage: React.FC = () => {
                             </h2>
                             
                             <div style={{
-                                fontSize: '16px',
-                                lineHeight: '1.8',
-                                color: 'var(--text-primary)',
-                                marginBottom: '24px',
-                                whiteSpace: 'pre-wrap'
+                                marginBottom: '24px'
                             }}>
-                                {note.content}
+                                <NoteContentRenderer 
+                                    content={note.content}
+                                    editable={note.accessLevel === 'EDITOR'}
+                                    onContentChange={(newContent) => {
+                                        if (note) {
+                                            // Update content for real-time task interaction
+                                            handleSaveContent(newContent);
+                                        }
+                                    }}
+                                />
                             </div>
 
                             {/* Images */}

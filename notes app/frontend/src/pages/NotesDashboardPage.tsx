@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SimpleImageViewer from '../components/SimpleImageViewer';
+import RichTextEditor from '../components/RichTextEditor';
+import NoteContentRenderer from '../components/NoteContentRenderer';
 
 interface Note {
     id: number;
@@ -667,7 +669,10 @@ const NotesDashboardPage: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="note-card-content">
-                                    {note.content}
+                                    <NoteContentRenderer 
+                                        content={note.content}
+                                        editable={false}
+                                    />
                                 </div>
                                 
                                 {/* Images Section */}
@@ -1129,21 +1134,11 @@ const NotesDashboardPage: React.FC = () => {
                                 }}>
                                     Content
                                 </label>
-                                <textarea
+                                <RichTextEditor
                                     value={newNote.content}
-                                    onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-                                    placeholder="Write your note content..."
-                                    rows={8}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid var(--border-color)',
-                                        borderRadius: '8px',
-                                        fontSize: '16px',
-                                        outline: 'none',
-                                        resize: 'vertical',
-                                        fontFamily: 'inherit'
-                                    }}
+                                    onChange={(content) => setNewNote(prev => ({ ...prev, content }))}
+                                    placeholder="Write your note content... Use the toolbar for formatting and click '+ Add Task' to create tasks."
+                                    height="250px"
                                 />
                             </div>
 
@@ -1367,21 +1362,11 @@ const NotesDashboardPage: React.FC = () => {
                                 }}>
                                     Content
                                 </label>
-                                <textarea
+                                <RichTextEditor
                                     value={editNote.content}
-                                    onChange={(e) => setEditNote(prev => ({ ...prev, content: e.target.value }))}
-                                    placeholder="Write your note content..."
-                                    rows={8}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '2px solid var(--border-color)',
-                                        borderRadius: '8px',
-                                        fontSize: '16px',
-                                        outline: 'none',
-                                        resize: 'vertical',
-                                        fontFamily: 'inherit'
-                                    }}
+                                    onChange={(content) => setEditNote(prev => ({ ...prev, content }))}
+                                    placeholder="Edit your note content... Use the toolbar for formatting and tasks."
+                                    height="250px"
                                 />
                             </div>
 
