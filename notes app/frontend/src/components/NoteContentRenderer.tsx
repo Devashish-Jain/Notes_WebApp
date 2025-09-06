@@ -11,12 +11,14 @@ interface NoteContentRendererProps {
     content: string;
     editable?: boolean;
     onContentChange?: (content: string) => void;
+    onTaskToggle?: (updatedContent: string) => Promise<void>;
 }
 
 const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({ 
     content, 
     editable = false, 
-    onContentChange 
+    onContentChange,
+    onTaskToggle 
 }) => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [displayContent, setDisplayContent] = useState('');
@@ -59,8 +61,9 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
         setDisplayContent(processedContent);
     };
 
-    const toggleTask = (taskId: string) => {
-        if (!editable || !onContentChange) return;
+    const toggleTask = async (taskId: string) => {
+        // Allow task toggle in both edit and view modes
+        if (!onContentChange && !onTaskToggle) return;
 
         const updatedTasks = tasks.map(task => 
             task.id === taskId ? { ...task, completed: !task.completed } : task
@@ -74,7 +77,23 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
             updatedContent = updatedContent.replace(oldTaskPattern, newTaskTag);
         });
 
-        onContentChange(updatedContent);
+        // Update local state immediately for responsive UI
+        setTasks(updatedTasks);
+
+        // If in edit mode, use onContentChange
+        if (editable && onContentChange) {
+            onContentChange(updatedContent);
+        }
+        // If in view mode, use onTaskToggle to save to backend
+        else if (onTaskToggle) {
+            try {
+                await onTaskToggle(updatedContent);
+            } catch (error) {
+                console.error('Failed to update task:', error);
+                // Revert local state on error
+                parseAndRenderContent(content);
+            }
+        }
     };
 
     const renderContent = (content: string) => {
@@ -131,7 +150,7 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
                     margin-right: 12px;
                     width: 18px;
                     height: 18px;
-                    cursor: ${editable ? 'pointer' : 'default'};
+                    cursor: ${(editable && onContentChange) || onTaskToggle ? 'pointer' : 'default'};
                     accent-color: #28a745;
                 }
 
@@ -243,7 +262,7 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
                                         checked={task.completed}
                                         onChange={() => toggleTask(task.id)}
                                         className="task-checkbox"
-                                        disabled={!editable}
+                                        disabled={!editable && !onTaskToggle}
                                     />
                                     <span className="task-text">{task.text}</span>
                                     <span className="task-status pending">Pending</span>
@@ -265,7 +284,7 @@ const NoteContentRenderer: React.FC<NoteContentRendererProps> = ({
                                         checked={task.completed}
                                         onChange={() => toggleTask(task.id)}
                                         className="task-checkbox"
-                                        disabled={!editable}
+                                        disabled={!editable && !onTaskToggle}
                                     />
                                     <span className="task-text">{task.text}</span>
                                     <span className="task-status completed">Done</span>

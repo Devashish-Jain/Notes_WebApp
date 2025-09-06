@@ -459,6 +459,7 @@ const SharedNotePage: React.FC = () => {
                                             handleSaveContent(newContent);
                                         }
                                     }}
+                                    onTaskToggle={handleSaveContent}
                                 />
                             </div>
 

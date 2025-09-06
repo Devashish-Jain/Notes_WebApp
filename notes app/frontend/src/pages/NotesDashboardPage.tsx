@@ -176,6 +176,40 @@ const NotesDashboardPage: React.FC = () => {
         setTimeout(() => setSuccessMessage(null), 3000);
     };
     
+    // Task Toggle in View Mode
+    const handleTaskToggle = async (noteId: number, updatedContent: string) => {
+        try {
+            const noteToUpdate = notes.find(n => n.id === noteId);
+            if (!noteToUpdate) return;
+
+            await axios.put(
+                `${import.meta.env.VITE_API_BASE_URL}/api/notes/${noteId}`,
+                {
+                    title: noteToUpdate.title,
+                    content: updatedContent
+                },
+                {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            // Update the local state immediately without full refresh
+            setNotes(prevNotes => 
+                prevNotes.map(note => 
+                    note.id === noteId ? { ...note, content: updatedContent } : note
+                )
+            );
+            
+        } catch (error: any) {
+            console.error('Failed to update task:', error);
+            setError('Failed to update task. Please try again.');
+            throw error; // Re-throw to trigger error handling in NoteContentRenderer
+        }
+    };
+    
     // Edit Note Functions
     const openEditModal = (note: Note) => {
         setEditingNote(note);
@@ -672,6 +706,7 @@ const NotesDashboardPage: React.FC = () => {
                                     <NoteContentRenderer 
                                         content={note.content}
                                         editable={false}
+                                        onTaskToggle={(updatedContent) => handleTaskToggle(note.id, updatedContent)}
                                     />
                                 </div>
                                 
