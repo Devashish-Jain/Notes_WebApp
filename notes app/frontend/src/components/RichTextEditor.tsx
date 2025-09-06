@@ -23,11 +23,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     const editorRef = useRef<HTMLDivElement>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isEditorFocused, setIsEditorFocused] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
-    // Parse content to extract tasks
+    // Parse content to extract tasks and update editor
     useEffect(() => {
         parseTasksFromContent(value);
-    }, [value]);
+        if (!isUpdating && editorRef.current) {
+            const contentWithoutTasks = getEditorContentForDisplay();
+            if (editorRef.current.innerHTML !== contentWithoutTasks) {
+                const selection = window.getSelection();
+                const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+                editorRef.current.innerHTML = contentWithoutTasks;
+                
+                // Restore cursor position if possible
+                if (range && selection) {
+                    try {
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } catch (e) {
+                        // Ignore if cursor restoration fails
+                    }
+                }
+            }
+        }
+    }, [value, isUpdating]);
 
     const parseTasksFromContent = (content: string) => {
         const taskRegex = /\[TASK:([^:]*):([^:]*):(\d+):([tf])\]/g;
@@ -74,23 +93,50 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onChange(newContent);
     };
 
+    const getEditorContentForDisplay = () => {
+        // Remove task placeholders from display content and preserve HTML
+        const contentWithoutTasks = value.replace(/\[TASK:[^:]*:[^:]*:\d+:[tf]\]/g, '').trim();
+        return contentWithoutTasks;
+    };
+
     const getEditorContent = () => {
-        // Remove task placeholders from display content for pure text
-        return value.replace(/\[TASK:[^:]*:[^:]*:\d+:[tf]\]/g, '').trim();
+        if (!editorRef.current) return '';
+        return editorRef.current.innerHTML;
     };
 
     const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
-        const content = e.currentTarget.textContent || '';
-        // Preserve existing tasks and update text content
+        if (isUpdating) return;
+        
+        setIsUpdating(true);
+        const htmlContent = e.currentTarget.innerHTML || '';
+        // Preserve existing tasks and update content
         const taskMatches = value.match(/\[TASK:[^:]*:[^:]*:\d+:[tf]\]/g) || [];
-        const newContent = content + '\n' + taskMatches.join('\n');
+        const taskContent = taskMatches.length > 0 ? '\n' + taskMatches.join('\n') : '';
+        const newContent = htmlContent + taskContent;
         onChange(newContent);
+        
+        // Allow updates after a short delay
+        setTimeout(() => setIsUpdating(false), 100);
     };
 
-    const applyFormat = useCallback((command: string, value?: string) => {
-        document.execCommand(command, false, value);
-        editorRef.current?.focus();
-    }, []);
+    const applyFormat = useCallback((command: string, commandValue?: string) => {
+        if (!editorRef.current) return;
+        
+        // Ensure editor is focused
+        editorRef.current.focus();
+        
+        // Apply formatting command
+        const success = document.execCommand(command, false, commandValue);
+        
+        if (success) {
+            // Trigger content change to save the formatted content
+            const htmlContent = editorRef.current.innerHTML;
+            const taskMatches = value.match(/\[TASK:[^:]*:[^:]*:\d+:[tf]\]/g) || [];
+            const taskContent = taskMatches.length > 0 ? '\n' + taskMatches.join('\n') : '';
+            const newContent = htmlContent + taskContent;
+            onChange(newContent);
+        }
+    }, [value, onChange]);
 
     const toggleTask = (taskId: string) => {
         const updatedTasks = tasks.map(task => {
@@ -334,7 +380,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                         minHeight: height,
                         outline: isEditorFocused ? '2px solid #007bff' : 'none'
                     }}
-                    dangerouslySetInnerHTML={{ __html: getEditorContent().replace(/\n/g, '<br>') }}
                 />
             </div>
 
