@@ -1,4 +1,7 @@
 {
+  "installCommand": "echo 'Skipping default install - using custom build script'",
+  "buildCommand": "chmod +x build.sh && ./build.sh",
+  "framework": null,
   "rewrites": [
     {
       "source": "/(.*)",
