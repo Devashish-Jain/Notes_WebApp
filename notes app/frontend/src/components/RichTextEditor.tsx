@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Task {
     id: string;
@@ -22,8 +20,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     placeholder = "Write your note here...",
     height = "200px"
 }) => {
-    const quillRef = useRef<ReactQuill>(null);
+    const editorRef = useRef<HTMLDivElement>(null);
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [isEditorFocused, setIsEditorFocused] = useState(false);
 
     // Parse content to extract tasks
     useEffect(() => {
@@ -67,23 +66,31 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             order: tasks.length
         };
 
-        const taskPlaceholder = `[TASK:${taskId}:${newTask.text}:${newTask.order}:f]`;
+        const taskPlaceholder = `\n[TASK:${taskId}:${newTask.text}:${newTask.order}:f]\n`;
         
-        const quill = quillRef.current?.getEditor();
-        if (quill) {
-            const range = quill.getSelection(true);
-            const index = range ? range.index : quill.getLength();
-            
-            // Insert task on a new line
-            if (index > 0) {
-                quill.insertText(index, '\n');
-                quill.insertText(index + 1, taskPlaceholder);
-                quill.insertText(index + taskPlaceholder.length + 1, '\n');
-            } else {
-                quill.insertText(index, taskPlaceholder + '\n');
-            }
-        }
+        // Get current content and add task
+        const currentContent = getEditorContent();
+        const newContent = currentContent + taskPlaceholder;
+        onChange(newContent);
     };
+
+    const getEditorContent = () => {
+        // Remove task placeholders from display content for pure text
+        return value.replace(/\[TASK:[^:]*:[^:]*:\d+:[tf]\]/g, '').trim();
+    };
+
+    const handleContentChange = (e: React.FormEvent<HTMLDivElement>) => {
+        const content = e.currentTarget.textContent || '';
+        // Preserve existing tasks and update text content
+        const taskMatches = value.match(/\[TASK:[^:]*:[^:]*:\d+:[tf]\]/g) || [];
+        const newContent = content + '\n' + taskMatches.join('\n');
+        onChange(newContent);
+    };
+
+    const applyFormat = useCallback((command: string, value?: string) => {
+        document.execCommand(command, false, value);
+        editorRef.current?.focus();
+    }, []);
 
     const toggleTask = (taskId: string) => {
         const updatedTasks = tasks.map(task => {
@@ -130,71 +137,76 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onChange(updatedContent);
     };
 
-    // Custom toolbar configuration
-    const modules = {
-        toolbar: {
-            container: [
-                [{ 'header': [1, 2, 3, false] }],
-                [{ 'size': ['small', false, 'large', 'huge'] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'color': [] }, { 'background': [] }],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'align': [] }],
-                ['blockquote', 'code-block'],
-                ['link', 'image'],
-                ['clean'],
-                ['task'] // Custom task button
-            ],
-            handlers: {
-                'task': insertTask
-            }
-        }
-    };
-
-    const formats = [
-        'header', 'size',
-        'bold', 'italic', 'underline', 'strike',
-        'color', 'background',
-        'list', 'bullet', 'align',
-        'blockquote', 'code-block',
-        'link', 'image'
-    ];
-
 
     return (
         <div className="rich-text-editor" style={{ position: 'relative' }}>
             <style>{`
-                .rich-text-editor .ql-toolbar {
-                    border-top: 1px solid #ccc;
-                    border-left: 1px solid #ccc;
-                    border-right: 1px solid #ccc;
+                .rich-text-editor .editor-toolbar {
+                    border: 1px solid #ccc;
+                    border-bottom: none;
                     border-radius: 8px 8px 0 0;
                     background: #f8f9fa;
+                    padding: 8px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 4px;
                 }
                 
-                .rich-text-editor .ql-container {
-                    border-bottom: 1px solid #ccc;
-                    border-left: 1px solid #ccc;
-                    border-right: 1px solid #ccc;
+                .rich-text-editor .editor-container {
+                    border: 1px solid #ccc;
                     border-radius: 0 0 8px 8px;
-                    font-size: 14px;
                     min-height: ${height};
                 }
                 
-                .rich-text-editor .ql-editor {
+                .rich-text-editor .editor-content {
                     min-height: ${height};
                     padding: 16px;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    outline: none;
+                    overflow-y: auto;
+                    white-space: pre-wrap;
                 }
                 
-                .rich-text-editor .ql-toolbar .ql-task {
-                    background: #28a745;
-                    color: white;
+                .rich-text-editor .editor-content:empty:before {
+                    content: attr(data-placeholder);
+                    color: #999;
+                    font-style: italic;
+                }
+                
+                .rich-text-editor .toolbar-btn {
+                    background: white;
+                    border: 1px solid #ddd;
                     border-radius: 4px;
                     padding: 4px 8px;
                     font-size: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
                 }
                 
-                .rich-text-editor .ql-toolbar .ql-task:hover {
+                .rich-text-editor .toolbar-btn:hover {
+                    background: #e9ecef;
+                    border-color: #adb5bd;
+                }
+                
+                .rich-text-editor .toolbar-btn.active {
+                    background: #007bff;
+                    color: white;
+                    border-color: #007bff;
+                }
+                
+                .rich-text-editor .add-task-btn {
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    font-size: 12px;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                }
+                
+                .rich-text-editor .add-task-btn:hover {
                     background: #218838;
                 }
                 
@@ -217,7 +229,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 .task-item.completed {
                     background: #f0f8f0;
                     border-color: #c0d0c0;
-                    order: 999; /* Move to bottom */
+                    order: 999;
                 }
                 
                 .task-checkbox {
@@ -258,32 +270,73 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     padding-bottom: 8px;
                     border-bottom: 1px solid #eee;
                 }
-                
-                .add-task-btn {
-                    background: #007bff;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    padding: 6px 12px;
-                    font-size: 12px;
-                    cursor: pointer;
-                    transition: background-color 0.2s ease;
-                }
-                
-                .add-task-btn:hover {
-                    background: #0056b3;
-                }
             `}</style>
 
-            <ReactQuill
-                ref={quillRef}
-                theme="snow"
-                value={value}
-                onChange={onChange}
-                placeholder={placeholder}
-                modules={modules}
-                formats={formats}
-            />
+            {/* Custom Toolbar */}
+            <div className="editor-toolbar">
+                <button 
+                    className="toolbar-btn"
+                    onMouseDown={(e) => { e.preventDefault(); applyFormat('bold'); }}
+                    title="Bold"
+                >
+                    <strong>B</strong>
+                </button>
+                <button 
+                    className="toolbar-btn"
+                    onMouseDown={(e) => { e.preventDefault(); applyFormat('italic'); }}
+                    title="Italic"
+                >
+                    <em>I</em>
+                </button>
+                <button 
+                    className="toolbar-btn"
+                    onMouseDown={(e) => { e.preventDefault(); applyFormat('underline'); }}
+                    title="Underline"
+                >
+                    <u>U</u>
+                </button>
+                <button 
+                    className="toolbar-btn"
+                    onMouseDown={(e) => { e.preventDefault(); applyFormat('insertUnorderedList'); }}
+                    title="Bullet List"
+                >
+                    • List
+                </button>
+                <button 
+                    className="toolbar-btn"
+                    onMouseDown={(e) => { e.preventDefault(); applyFormat('insertOrderedList'); }}
+                    title="Numbered List"
+                >
+                    1. List
+                </button>
+                <button 
+                    className="add-task-btn"
+                    onClick={insertTask}
+                    type="button"
+                    title="Add Task"
+                >
+                    + Task
+                </button>
+            </div>
+
+            {/* Content Editor */}
+            <div className="editor-container">
+                <div
+                    ref={editorRef}
+                    className="editor-content"
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
+                    data-placeholder={placeholder}
+                    onInput={handleContentChange}
+                    onFocus={() => setIsEditorFocused(true)}
+                    onBlur={() => setIsEditorFocused(false)}
+                    style={{
+                        minHeight: height,
+                        outline: isEditorFocused ? '2px solid #007bff' : 'none'
+                    }}
+                    dangerouslySetInnerHTML={{ __html: getEditorContent().replace(/\n/g, '<br>') }}
+                />
+            </div>
 
             {/* Tasks Section */}
             {tasks.length > 0 && (
